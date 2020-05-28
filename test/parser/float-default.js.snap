@@ -1,0 +1,8 @@
+{
+  args: [],
+  cliProvided: Set(0) {},
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: 42 },
+  unknown: []
+}
