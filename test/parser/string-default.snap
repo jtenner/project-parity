@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\string-default.config.js' ],
+  cliProvided: Set(0) {},
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: 'Some Default Value' },
+  unknown: [ '--config' ]
+}

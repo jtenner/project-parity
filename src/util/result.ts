@@ -1,5 +1,5 @@
 export type OptionsResult<T> = Record<keyof T, any> & {
-  configuration: Partial<Record<keyof T, any>>;
+  config: Partial<Record<keyof T, any>>;
 };
 export type Result<T> = {
   /** Any argument that wasn't a flag. */

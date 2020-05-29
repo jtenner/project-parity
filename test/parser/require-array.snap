@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\require-array.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: [ { life: 42 }, Set(3) { 1, 2, 3 } ] },
+  unknown: [ '--config' ]
+}

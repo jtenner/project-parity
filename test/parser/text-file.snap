@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\text-file.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: 'a b c d e f g\r\n' },
+  unknown: [ '--config' ]
+}

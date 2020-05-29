@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\string.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: 'the option' },
+  unknown: [ '--config' ]
+}

@@ -27,12 +27,19 @@ interface TestInput {
 }
 
 export async function test(files: Promise<void>[]): Promise<boolean> {
-  const tests = await globp("test/parser/**/*.js");
+  const tests = await globp("test/parser/**/*.test.js");
   const updateSnapshots = process.argv.includes("--create");
   let passed = true;
   for (const test of tests) {
     const input: TestInput = require(path.resolve(test));
-    const result = await parse(input.argv, input.config);
+    const dirname = path.dirname(test);
+    const basename = path.basename(test, ".test.js");
+    const configFileName = path.join(dirname, basename + ".config.js");
+    await fs.appendFile(configFileName, "");
+    const result = await parse(
+      input.argv.concat(["--config", configFileName]),
+      input.config,
+    );
     Object.entries(result.options).forEach(([key, value]) => {
       if (typeof value === "string") {
         result.options[key] = replaceCWD(value);
@@ -42,10 +49,11 @@ export async function test(files: Promise<void>[]): Promise<boolean> {
     });
     result.errors = result.errors.map(replaceCWD);
     const inspected = inspect(result, inspectOptions) + "\n";
-    const dirname = path.dirname(test);
-    const basename = path.basename(test);
+
     const snapFileName = path.join(dirname, basename + ".snap");
     await fs.appendFile(snapFileName, "");
+
+
     const file = await fs.readFile(snapFileName, "utf8");
     if (updateSnapshots) {
       if (inspected !== file) {

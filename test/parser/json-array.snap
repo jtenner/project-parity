@@ -1,0 +1,13 @@
+{
+  args: [ 'test\\parser\\json-array.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: {
+    optionA: [
+      [ 1, 2, 3, 4, {} ],
+      { f: { g: { h: {} } } }
+    ]
+  },
+  unknown: [ '--config' ]
+}

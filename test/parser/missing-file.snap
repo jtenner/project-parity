@@ -1,0 +1,10 @@
+{
+  args: [ 'test\\parser\\missing-file.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [
+    "ENOENT: no such file or directory, open '{CWD}/test/files/c.txt'"
+  ],
+  options: { optionA: undefined },
+  unknown: [ '--config' ]
+}

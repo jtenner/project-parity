@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\string-error.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [ 'Invalid option: optionA not enough arguments provided.' ],
+  options: { optionA: 'some default value' },
+  unknown: [ '--config' ]
+}

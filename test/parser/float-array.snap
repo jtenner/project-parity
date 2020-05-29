@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\float-array.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: [ 1, 2, 3, 4 ] },
+  unknown: [ '--config' ]
+}

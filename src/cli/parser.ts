@@ -32,8 +32,7 @@ async function obtainValue(type: OptionType, value: string): Promise<any> {
       return new RegExp(value);
     case OptionType.RegExpArray:
       return value.split(",").map(e => new RegExp(e));
-    case OptionType.Require:
-      return require(path.resolve(value));
+    case OptionType.Require: return require(path.resolve(value));
     case OptionType.RequireArray:
       return value.split(",").map(e => require(path.resolve(e)));
     case OptionType.JSONArray:
@@ -81,6 +80,13 @@ async function resolveCliOption(
 ): Promise<number> {
   const nextIndex = index + 1;
   switch (definition.type) {
+    case OptionType.Function: {
+      result.errors.push(
+        `Invalid flag ${name}, can only be passed via configuration file.`,
+      );
+      return 0;
+    }
+
     case OptionType.Glob:
     case OptionType.GlobArray:
     case OptionType.Integer:
@@ -134,16 +140,178 @@ async function resolveCliOption(
   return 0;
 }
 
+function validateConfigOption(
+  option: Partial<ConfigurationDefinition>,
+  value: any,
+): boolean {
+  switch (option.type) {
+    case OptionType.Function:
+      return typeof value === "function";
+    case OptionType.Integer:
+      return Number.isInteger(value);
+    case OptionType.Float:
+      return typeof value === "number";
+    case OptionType.IntegerArray: {
+      return (
+        Array.isArray(value) &&
+        value.reduce(
+          (result, value: any) => result && Number.isInteger(value),
+          true,
+        )
+      );
+    }
+    case OptionType.FloatArray: {
+      return (
+        Array.isArray(value) &&
+        value.reduce(
+          (result, value: any) => result && typeof value === "number",
+          true,
+        )
+      );
+    }
+
+    case OptionType.RegExp:
+      return value && value.constructor === RegExp;
+    case OptionType.RegExpArray: {
+      return (
+        Array.isArray(value) &&
+        value.reduce(
+          (result, e: any) => result && e && e.constructor === RegExp,
+          true,
+        )
+      );
+    }
+    // string[]
+    case OptionType.FileArray:
+    case OptionType.GlobArray:
+    case OptionType.JSONArray:
+    case OptionType.RequireArray:
+    case OptionType.ResolveArray:
+    case OptionType.StringArray:
+    case OptionType.TextFileArray: {
+      return (
+        Array.isArray(value) &&
+        value.reduce(
+          (result, value: any) => result && typeof value === "string",
+          true,
+        )
+      );
+    }
+
+    // strings
+    case OptionType.File:
+    case OptionType.Glob:
+    case OptionType.JSON:
+    case OptionType.Require:
+    case OptionType.Resolve:
+    case OptionType.String:
+    case OptionType.TextFile: {
+      return typeof value === "string";
+    }
+    case OptionType.Flag:
+    default: {
+      return value === true || value === false;
+    }
+  }
+}
+
+async function obtainConfigValue(
+  option: Partial<ConfigurationDefinition>,
+  value: any,
+): Promise<any> {
+  switch (option.type) {
+    case OptionType.File:
+      return fs.readFile(value);
+    case OptionType.FileArray:
+      return Promise.all(value.map((file: string) => fs.readFile(file)));
+    case OptionType.Glob:
+      return globp(value);
+    case OptionType.GlobArray:
+      return Promise.all(value.map((e: string) => globp(e))).then(all =>
+        Array.from(
+          new Set(([] as string[]).concat.apply([], all as string[][])),
+        ),
+      );
+    case OptionType.JSON:
+      return JSON.parse(await fs.readFile(value, "utf8"));
+    case OptionType.JSONArray:
+      return Promise.all(
+        value.map((e: string) =>
+          fs.readFile(e, "utf8").then(e => JSON.parse(e)),
+        ),
+      );
+    case OptionType.Require:
+      return require(path.resolve(value));
+    case OptionType.RequireArray:
+      return value.map((e: string) => require(path.resolve(e)));
+    case OptionType.Resolve:
+      return path.resolve(value);
+    case OptionType.ResolveArray:
+      return value.map((e: string) => path.resolve(e));
+    case OptionType.TextFile:
+      return fs.readFile(value, "utf8");
+    case OptionType.TextFileArray:
+      return Promise.all(
+        value.map((file: string) => fs.readFile(file, "utf8")),
+      );
+
+    case OptionType.RegExp:
+    case OptionType.RegExpArray:
+    case OptionType.IntegerArray:
+    case OptionType.Integer:
+    case OptionType.Function:
+    case OptionType.String:
+    case OptionType.StringArray:
+    case OptionType.Float:
+    case OptionType.Flag:
+    default: {
+      return value;
+    }
+  }
+}
+
+async function resolveConfigOption<T>(
+  result: Result<T>,
+  key: keyof T,
+  option: Partial<ConfigurationDefinition>,
+  value: any,
+): Promise<void> {
+  result.configProvided.add(key as string);
+  if (validateConfigOption(option, value)) {
+    result.options[key] = await obtainConfigValue(option, value);
+  }
+}
+
+export async function resolveConfig<T>(
+  result: Result<T>,
+  configuration: Configuration<T>,
+): Promise<void> {
+  const promises: Promise<void>[] = [];
+  for (const [key, value] of Object.entries(result.options.config)) {
+    if (key === "config") continue;
+    const configOption = configuration[key as keyof T];
+    if (!configOption) {
+      result.errors.push(`Unknown configuration property: ${key}`);
+      continue;
+    }
+    if (!result.cliProvided.has(key as string)) {
+      promises.push(
+        resolveConfigOption(result, key as keyof T, configOption, value),
+      );
+    }
+  }
+  return Promise.all(promises).then(() => {});
+}
+
 export async function parse<T>(
   argv: string[],
   configuration: Configuration<T>,
 ): Promise<Result<T>> {
-  const options = {} as OptionsResult<T>;
   const result: Result<T> = {
     args: [],
     unknown: [],
     cliProvided: new Set<string>(),
-    options,
+    options: {} as OptionsResult<T>,
     configProvided: new Set<string>(),
     errors: [],
   };
@@ -192,10 +360,25 @@ export async function parse<T>(
       result.args.push(arg);
     }
   }
+
+  // @ts-ignore: Determine if a configuration exists
+  if (configuration.config) {
+    // @ts-ignore: Determine if a configuration exists
+    const configDefinition = configuration.config as Partial<
+      ConfigurationDefinition
+    >;
+    if (configDefinition.type === OptionType.Require) {
+      await resolveConfig<T>(result, configuration);
+    } else {
+      result.errors.push(`Option --config must be of type OptionType.Require.`);
+    }
+  }
+
   for (const key of required) {
     if (!result.cliProvided.has(key) && !result.configProvided.has(key)) {
       result.errors.push(`Invalid configuration, "${key}" not provided.`);
     }
   }
+
   return result;
 }

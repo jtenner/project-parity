@@ -1,0 +1,8 @@
+{
+  args: [ 'test\\parser\\integer-array.config.js' ],
+  cliProvided: Set(1) { 'optionA' },
+  configProvided: Set(0) {},
+  errors: [],
+  options: { optionA: [ 10, 9, 8, 7, 6 ] },
+  unknown: [ '--config' ]
+}
